@@ -1,7 +1,7 @@
 # GPUFuzz
 
 Implementation of the paper **GPUFuzz: Uncovering State-Interaction
-Inconsistencies in GPGPU Hardware**, split along the Design section:
+Inconsistencies in GPGPU Hardware**:
 
 | folder | role |
 |---|---|
@@ -70,6 +70,5 @@ specs/              per-target caps and the Table 2 bug list
 tests/              synthetic trace fixtures + unit tests
 ```
 
-Useful make targets: `make demo`, `make selftest`, `make doctor`, `make test`.
 
 
