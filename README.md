@@ -3,20 +3,18 @@
 Implementation of the paper **GPUFuzz: Uncovering State-Interaction
 Inconsistencies in GPGPU Hardware**, split along the Design section:
 
-| folder | role | paper |
-|---|---|---|
-| [`fuzzer/`](fuzzer) | builds the ESDModel, synthesizes `T=<K,C>`, dependency-preserving mutation, feedback-driven seed scheduling | §4.2 §4.3 / Alg. 1 |
-| [`oracle/`](oracle) | collects `O=<A,E,S>`, functional + state-interaction consistency checking, reproduction/minimization/de-duplication | §4.4 / Fig. 7 |
+| folder | role |
+|---|---|
+| [`fuzzer/`](fuzzer) | builds the ESDModel, synthesizes `T=<K,C>`, dependency-preserving mutation, feedback-driven seed scheduling | 
+| [`oracle/`](oracle) | collects `O=<A,E,S>`, functional + state-interaction consistency checking, reproduction/minimization/de-duplication | 
 
 Around them: `common/` (IR, configuration, `c/e/s/θ/ω`), `adapters/` (Verilator
 harness generation, build/run drivers, trace adapter, coverage) and `specs/`
 (the six GPGPUs: Vortex, Ventus, VeriGPU, MIAOW, Nyuzi, smol-gpu).
 
-25 shapes → 62 relations; all 22 bugs of Table 2 are covered.
-
 ---
 
-## Quick start (no RTL needed)
+## Quick start
 
 Python 3.8+, standard library only.
 
@@ -74,25 +72,4 @@ tests/              synthetic trace fixtures + unit tests
 
 Useful make targets: `make demo`, `make selftest`, `make doctor`, `make test`.
 
-## Limitations
 
-- **No RTL is bundled.** The six checkouts, Verilator and the toolchains are
-  external; `cli.py doctor` lists exactly what is missing.
-- **Signal paths ship empty.** Hierarchical names cannot be derived from the
-  paper — run `discover` on your checkout first (it writes a `.bak` and records
-  the source location of every resolved signal).
-- **27 of the 35 `GPU_*` macros per RISC-V target are `placeholder`/`medium`.**
-  CSR numbers, texture/barrier/exit encodings and memory pins are design
-  specific; replace them following the comments.
-- **Nyuzi and MIAOW are still `dialect: opaque`** — their assembler dialects must
-  be supplied; `doctor` reports this as a blocking problem.
-- **`--driver fixture` is not a DUT.** It synthesizes traces to regression-test
-  the oracle and must not be used for bug counts or coverage claims.
-- `specs/*.json` caps are the projects' documented defaults — adjust them to your
-  elaboration; the `verify` field lists the parameters to check.
-
-## Paper mapping
-
-`§4.2` → `common/types.py`, `common/esd/`, `fuzzer/esd_model.py`; `§4.3` →
-`fuzzer/generator.py`, `mutator.py`, `seedpool.py`, `loop.py`; `§4.4` →
-`oracle/`; `§5 Fig. 8` → `adapters/`; `Table 1/2` → `specs/*.json`.
