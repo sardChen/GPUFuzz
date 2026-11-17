@@ -1,0 +1,68 @@
+{
+  "schema": "gpufuzz.recipe/1",
+  "target": "vortex",
+  "top": "Vortex",
+  "status": "template",
+  "sources": [
+    "hw/rtl/**/*.sv",
+    "hw/rtl/**/*.v"
+  ],
+  "include_dirs": [],
+  "verilator_flags": [
+    "-O2",
+    "--x-assign",
+    "fast",
+    "--x-initial",
+    "0"
+  ],
+  "clock": {
+    "path": "clock",
+    "port": "clock",
+    "period": 10
+  },
+  "reset": {
+    "path": "reset",
+    "port": "reset",
+    "polarity": "high",
+    "cycles": 20
+  },
+  "done": "",
+  "progress": {
+    "retire": "commit_valid",
+    "store": "mem_valid"
+  },
+  "memory": {
+    "kind": "axil",
+    "base": 4096,
+    "size": 1048576,
+    "pins": {
+      "awvalid": "",
+      "awready": "",
+      "awaddr": "",
+      "wvalid": "",
+      "wready": "",
+      "wdata": "",
+      "wstrb": "",
+      "bvalid": "",
+      "bready": "",
+      "arvalid": "",
+      "arready": "",
+      "araddr": "",
+      "rvalid": "",
+      "rready": "",
+      "rdata": ""
+    },
+    "data_width": 32,
+    "addr_width": 32
+  },
+  "build": {
+    "tool": "verilator",
+    "jobs": 4
+  },
+  "notes": "Vortex needs its RTL include dirs; add them to include_dirs. Source globs are patterns: build.py expands them against --rtl.",
+  "todo": [
+    "confirm the top module name after elaboration",
+    "fill the memory pin names (see discover.py --pins)",
+    "provide the done/retire signals used for anchoring"
+  ]
+}

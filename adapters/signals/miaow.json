@@ -1,0 +1,191 @@
+{
+  "schema": "gpufuzz.signals/1",
+  "target": "miaow",
+  "top": "MIAOW",
+  "scope": "TOP.MIAOW",
+  "confidence": "unresolved",
+  "signals": [
+    {
+      "id": "if_fire",
+      "path": "",
+      "probe": "issue|dispatch_valid|wave_issue",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "wb_valid",
+      "path": "",
+      "probe": "wb_valid|writeback_valid",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "wb_ready",
+      "path": "",
+      "probe": "wb_ready",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "wb_reg",
+      "path": "",
+      "probe": "wb_reg|dest_reg|wave_reg",
+      "width": 16,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "mem_valid",
+      "path": "",
+      "probe": "lsu_req_valid|mem_valid",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "mem_ready",
+      "path": "",
+      "probe": "lsu_req_ready|mem_ready",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "rsp_valid",
+      "path": "",
+      "probe": "lsu_rsp_valid|rsp_valid",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "rsp_wave",
+      "path": "",
+      "probe": "rsp_wave|wave_id|wfb_id",
+      "width": 8,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "req_wave",
+      "path": "",
+      "probe": "req_wave|issue_wave|wave_id",
+      "width": 8,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "commit_valid",
+      "path": "",
+      "probe": "commit|retire",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "done",
+      "path": "",
+      "probe": "done|kernel_end|halt",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    }
+  ],
+  "states": [
+    {
+      "sid": "rf.arb",
+      "path": "",
+      "probe": "wb_arb|arb_valid|wb_conflict",
+      "obj_fmt": "unit:rf",
+      "width": 4,
+      "confidence": "unresolved"
+    },
+    {
+      "sid": "txn.state",
+      "path": "",
+      "probe": "lsu_state|txn_state",
+      "obj_fmt": "txn:%d",
+      "width": 4,
+      "confidence": "unresolved",
+      "obj_from": "req_wave"
+    },
+    {
+      "sid": "warp.slot",
+      "path": "",
+      "probe": "wave_slot|warp_alloc",
+      "obj_fmt": "slot:%d",
+      "width": 8,
+      "confidence": "unresolved",
+      "obj_from": "req_wave"
+    }
+  ],
+  "events": [
+    {
+      "id": "wb",
+      "type": "wb",
+      "when": "wb_valid & wb_ready",
+      "outcome": "ok",
+      "obj": {
+        "kind": "reg",
+        "from": "wb_reg",
+        "fmt": "reg:%d"
+      }
+    },
+    {
+      "id": "wb_arb",
+      "type": "wb_arb",
+      "when": "wb_valid",
+      "outcome": "ok"
+    },
+    {
+      "id": "mem_req",
+      "type": "mem_req",
+      "when": "mem_valid & mem_ready",
+      "outcome": "ok"
+    },
+    {
+      "id": "mem_rsp",
+      "type": "mem_rsp",
+      "when": "rsp_valid",
+      "outcome": "ok"
+    }
+  ],
+  "inject": {
+    "mem_backpressure": {
+      "method": "drive",
+      "pins": [
+        "mem_ready"
+      ],
+      "value": 0,
+      "note": "drive the memory interface's ready/valid-low for the window"
+    },
+    "warp_oversubscribe": {
+      "method": "drive",
+      "pins": [
+        "launch_valid"
+      ],
+      "value": 1
+    }
+  },
+  "arch": {
+    "mem_range": [
+      4096,
+      69632
+    ],
+    "regfile": []
+  },
+  "progress": {
+    "retire": "commit_valid",
+    "store": "mem_valid"
+  },
+  "gaps": [
+    "wavefront ids are 6-bit in SI; adjust widths and object formats"
+  ],
+  "notes": [
+    "Every path is empty on purpose: run `python3 cli.py discover --target miaow --rtl <checkout>` to resolve the probes against your elaborated RTL, then `cli.py doctor`.",
+    "The event rules and state clusters are the semantic part and normally do not change."
+  ]
+}

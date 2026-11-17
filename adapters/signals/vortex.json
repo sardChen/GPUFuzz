@@ -1,0 +1,233 @@
+{
+  "schema": "gpufuzz.signals/1",
+  "target": "vortex",
+  "top": "Vortex",
+  "scope": "TOP.Vortex",
+  "confidence": "unresolved",
+  "signals": [
+    {
+      "id": "if_fire",
+      "path": "",
+      "probe": "ibuf_fire|if_fire|issue_fire",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "if_wvd",
+      "path": "",
+      "probe": "wvd|wvd_reg",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "if_reg",
+      "path": "",
+      "probe": "waddr|rd_waddr|if_reg",
+      "width": 8,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "wb_valid",
+      "path": "",
+      "probe": "wb_valid|wb_fire",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "wb_ready",
+      "path": "",
+      "probe": "wb_ready",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "wb_reg",
+      "path": "",
+      "probe": "wb_waddr|wb_reg|waddr",
+      "width": 8,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "mem_valid",
+      "path": "",
+      "probe": "axi_awvalid|mem_valid|stq_valid",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "mem_ready",
+      "path": "",
+      "probe": "axi_awready|mem_ready",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "flush_valid",
+      "path": "",
+      "probe": "flush_valid|dcache_flush|flush_req",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "flush_addr",
+      "path": "",
+      "probe": "flush_addr|flush_line",
+      "width": 32,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "commit_valid",
+      "path": "",
+      "probe": "commit_valid|retire_valid",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "done",
+      "path": "",
+      "probe": "kernel_done|kernel_end|done",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    }
+  ],
+  "states": [
+    {
+      "sid": "scoreboard.busy",
+      "path": "",
+      "probe": "scoreboard|pending_writes|busy",
+      "obj_fmt": "reg:%d",
+      "width": 32,
+      "confidence": "unresolved",
+      "obj_from": "if_reg"
+    },
+    {
+      "sid": "dcache.dirty",
+      "path": "",
+      "probe": "dirty",
+      "obj_fmt": "line:0x%x",
+      "width": 4,
+      "confidence": "unresolved",
+      "obj_from": "flush_addr"
+    },
+    {
+      "sid": "tex.mipmap",
+      "path": "",
+      "probe": "mipmap|tex_offset|tex_base",
+      "obj_fmt": "tex:0",
+      "width": 32,
+      "confidence": "unresolved"
+    },
+    {
+      "sid": "cfg.reg",
+      "path": "",
+      "probe": "cfg_reg|kernel_cfg|queue_cfg",
+      "obj_fmt": "cfg:kernel_q",
+      "width": 32,
+      "confidence": "unresolved"
+    }
+  ],
+  "events": [
+    {
+      "id": "issue",
+      "type": "issue",
+      "when": "if_fire & if_wvd",
+      "outcome": "ok",
+      "obj": {
+        "kind": "reg",
+        "from": "if_reg",
+        "fmt": "reg:%d"
+      }
+    },
+    {
+      "id": "wb",
+      "type": "wb",
+      "when": "wb_valid & wb_ready",
+      "outcome": "ok",
+      "obj": {
+        "kind": "reg",
+        "from": "wb_reg",
+        "fmt": "reg:%d"
+      }
+    },
+    {
+      "id": "flush",
+      "type": "flush",
+      "when": "flush_valid",
+      "outcome": "ok",
+      "obj": {
+        "kind": "line",
+        "from": "flush_addr",
+        "fmt": "line:0x%x"
+      }
+    },
+    {
+      "id": "tex_config",
+      "type": "tex_config",
+      "when": "tex_cfg_valid",
+      "outcome": "ok"
+    },
+    {
+      "id": "tex_access",
+      "type": "tex_access",
+      "when": "tex_req_valid",
+      "outcome": "ok"
+    }
+  ],
+  "inject": {
+    "mem_backpressure": {
+      "method": "drive",
+      "pins": [
+        "mem_ready"
+      ],
+      "value": 0,
+      "note": "drive the memory interface's ready/valid-low for the window"
+    },
+    "cache_flush": {
+      "method": "pulse",
+      "path": "flush_valid",
+      "cycles": 1
+    },
+    "tex_reconfig": {
+      "method": "pulse",
+      "path": "tex_cfg_valid",
+      "cycles": 1
+    },
+    "launch_queue": {
+      "method": "drive",
+      "pins": [
+        "launch_valid"
+      ],
+      "value": 1
+    }
+  },
+  "arch": {
+    "mem_range": [
+      4096,
+      69632
+    ],
+    "regfile": []
+  },
+  "progress": {
+    "retire": "commit_valid",
+    "store": "mem_valid"
+  },
+  "gaps": [
+    "texture configuration and launch queue ports are design specific; provide them through the recipe or the kernel's cache_op"
+  ],
+  "notes": [
+    "Every path is empty on purpose: run `python3 cli.py discover --target vortex --rtl <checkout>` to resolve the probes against your elaborated RTL, then `cli.py doctor`.",
+    "The event rules and state clusters are the semantic part and normally do not change."
+  ]
+}

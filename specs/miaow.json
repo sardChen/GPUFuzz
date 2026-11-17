@@ -1,0 +1,50 @@
+{
+  "target": "miaow",
+  "full_name": "MIAOW",
+  "isa": "AMD Southern Islands",
+  "arch": "Compute Unit",
+  "hdl": "Verilog",
+  "signals": "adapters/signals/miaow.json",
+  "recipe": "adapters/verilator/recipes/miaow.json",
+  "isa_profile": "common/isa/miaow.json",
+  "caps": {
+    "lanes": 64,
+    "warps_per_block": 4,
+    "warps_total": 4,
+    "warp_slots": 4,
+    "max_blocks": 64,
+    "max_regs": 256,
+    "smem_bytes": 65536,
+    "features": [
+      "fp32",
+      "mul",
+      "barrier"
+    ],
+    "inject": [
+      "mem_backpressure",
+      "warp_oversubscribe"
+    ],
+    "gmem_bytes": 1048576
+  },
+  "caps_source": "MIAOW compute-unit parameters (wavefront size 64, 4 wavefronts).",
+  "verify": [
+    "wavefront size (64) and per-CU wavefront slots",
+    "LSU response tag / wavefront id association on rescheduling",
+    "register file write arbitration between execution units"
+  ],
+  "bugs": {
+    "#19": {
+      "shape": "WAVE_RESPONSE_ASSOC",
+      "component": "LSU",
+      "kind": "interaction",
+      "note": "A delayed LSU response is associated with the wrong wavefront after rescheduling, corrupting the destination register."
+    },
+    "#20": {
+      "shape": "WB_ARB",
+      "component": "Register File",
+      "kind": "interaction",
+      "note": "Simultaneous writebacks from multiple execution units are mis-arbitrated; one register update is lost."
+    }
+  },
+  "notes": "Parameters are starting points taken from each project's documented defaults. They are data: adjust caps to the configuration you elaborate, then run `python3 cli.py doctor --target miaow`."
+}

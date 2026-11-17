@@ -1,0 +1,17 @@
+{
+  "target": "miaow",
+  "dialect": "opaque",
+  "entry": "gpufuzz_entry",
+  "toolchain": {
+    "cc": "vasm",
+    "objcopy": "python3 tools/elf2bin.py",
+    "flags": [],
+    "objcopy_flags": []
+  },
+  "macros": {},
+  "startup": {
+    "stack_bytes": 4096,
+    "stack": "__stack_top"
+  },
+  "notes": "MIAOW (AMD SI) binaries are produced by VASM.  Supply VASM mnemonics through a dialect backend; the IR is ready."
+}

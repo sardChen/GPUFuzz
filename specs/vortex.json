@@ -1,0 +1,64 @@
+{
+  "target": "vortex",
+  "full_name": "Vortex",
+  "isa": "RISC-V RV32IMF + SIMT",
+  "arch": "Multi-core SIMT",
+  "hdl": "SystemVerilog",
+  "signals": "adapters/signals/vortex.json",
+  "recipe": "adapters/verilator/recipes/vortex.json",
+  "isa_profile": "common/isa/vortex.json",
+  "caps": {
+    "lanes": 32,
+    "warps_per_block": 16,
+    "warps_total": 64,
+    "warp_slots": 16,
+    "max_blocks": 1024,
+    "max_regs": 32,
+    "smem_bytes": 49152,
+    "features": [
+      "fp32",
+      "mul",
+      "int_div",
+      "texture",
+      "cache_control",
+      "cfg_regs",
+      "barrier"
+    ],
+    "inject": [
+      "cache_flush",
+      "mem_backpressure",
+      "launch_queue",
+      "tex_reconfig",
+      "warp_oversubscribe"
+    ],
+    "gmem_bytes": 1048576
+  },
+  "caps_source": "Vortex ci/ configuration (NUM_WARPS/NUM_THREADS); adjust to the configuration you elaborate.",
+  "verify": [
+    "NUM_THREADS (lanes) in hw/rtl/VX_config.sv / config.vh",
+    "NUM_WARPS, NUM_CORES",
+    "texture unit enabled (VX_tex_unit present in the build)",
+    "kernel launch queue depth in VX_csr / VX_kernel_dispatch"
+  ],
+  "bugs": {
+    "#16": {
+      "shape": "FP_ROUND_OVERFLOW",
+      "component": "FPU",
+      "kind": "functional",
+      "note": "FP conversion ignores directed rounding on overflow: returns inf instead of the largest finite value."
+    },
+    "#17": {
+      "shape": "LAUNCH_QUEUE_CFG",
+      "component": "Configuration",
+      "kind": "interaction",
+      "note": "Queued launches do not preserve the GPU configuration registers captured at enqueue."
+    },
+    "#18": {
+      "shape": "TEX_MIPMAP",
+      "component": "Texture Unit",
+      "kind": "interaction",
+      "note": "Texture reconfiguration updates active mipmap offsets, so later accesses reuse stale offsets."
+    }
+  },
+  "notes": "Parameters are starting points taken from each project's documented defaults. They are data: adjust caps to the configuration you elaborate, then run `python3 cli.py doctor --target vortex`."
+}

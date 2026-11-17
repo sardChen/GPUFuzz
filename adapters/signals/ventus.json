@@ -1,0 +1,211 @@
+{
+  "schema": "gpufuzz.signals/1",
+  "target": "ventus",
+  "top": "Ventus",
+  "scope": "TOP.Ventus",
+  "confidence": "unresolved",
+  "signals": [
+    {
+      "id": "if_fire",
+      "path": "",
+      "probe": "if_fire|if_valid",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved",
+      "note": "instruction issue fire"
+    },
+    {
+      "id": "if_wvd",
+      "path": "",
+      "probe": "wvd|wvd_reg|reg_wvd",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "if_reg",
+      "path": "",
+      "probe": "reg_idxw|if_ctrl_reg_idxw|waddr",
+      "width": 8,
+      "kind": "signal",
+      "confidence": "unresolved",
+      "state": "reg"
+    },
+    {
+      "id": "wb_valid",
+      "path": "",
+      "probe": "wb_v_fire|wb_v_valid|wb_valid",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "wb_ready",
+      "path": "",
+      "probe": "wb_v_ready|wb_ready",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "wb_reg",
+      "path": "",
+      "probe": "wb_v_ctrl_reg_idxw|wb_reg|wb_waddr",
+      "width": 8,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "mem_valid",
+      "path": "",
+      "probe": "mem_req_valid|MemReqArb_io_in.*_valid",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "mem_ready",
+      "path": "",
+      "probe": "mem_req_ready|MemReqArb_io_in.*_ready",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "flush_valid",
+      "path": "",
+      "probe": "flushChoosen_valid|flush_valid|flush_req",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "flush_addr",
+      "path": "",
+      "probe": "flushChoosen_addr|flush_addr|flush_bits",
+      "width": 32,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "commit_valid",
+      "path": "",
+      "probe": "commit_valid|retire_valid|wb_v_fire",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "done",
+      "path": "",
+      "probe": "kernel_end|exit_valid|done",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    }
+  ],
+  "states": [
+    {
+      "sid": "scoreboard.busy",
+      "path": "",
+      "probe": "vectorReg.*busy|scoreboard.*busy|busy_reg",
+      "obj_fmt": "reg:%d",
+      "width": 32,
+      "confidence": "unresolved",
+      "obj_from": "if_reg"
+    },
+    {
+      "sid": "dcache.dirty",
+      "path": "",
+      "probe": "way_dirty",
+      "obj_fmt": "line:0x%x",
+      "width": 4,
+      "confidence": "unresolved",
+      "obj_from": "flush_addr"
+    },
+    {
+      "sid": "wb.pending",
+      "path": "",
+      "probe": "wb_pending|InvOrFluMemReqValid",
+      "obj_fmt": "line:0x%x",
+      "width": 1,
+      "confidence": "unresolved",
+      "obj_from": "flush_addr"
+    }
+  ],
+  "events": [
+    {
+      "id": "issue",
+      "type": "issue",
+      "when": "if_fire & if_wvd",
+      "outcome": "ok",
+      "obj": {
+        "kind": "reg",
+        "from": "if_reg",
+        "fmt": "reg:%d"
+      }
+    },
+    {
+      "id": "wb",
+      "type": "wb",
+      "when": "wb_valid & wb_ready",
+      "outcome": "ok",
+      "obj": {
+        "kind": "reg",
+        "from": "wb_reg",
+        "fmt": "reg:%d"
+      }
+    },
+    {
+      "id": "mem_fire",
+      "type": "mem_fire",
+      "when": "mem_valid & mem_ready",
+      "outcome": "ok"
+    },
+    {
+      "id": "flush",
+      "type": "flush",
+      "when": "flush_valid",
+      "outcome": "ok",
+      "obj": {
+        "kind": "line",
+        "from": "flush_addr",
+        "fmt": "line:0x%x"
+      }
+    }
+  ],
+  "inject": {
+    "mem_backpressure": {
+      "method": "drive",
+      "pins": [
+        "mem_ready"
+      ],
+      "value": 0,
+      "note": "drive the memory interface's ready/valid-low for the window"
+    },
+    "cache_flush": {
+      "method": "pulse",
+      "path": "flush_valid",
+      "cycles": 1
+    }
+  },
+  "arch": {
+    "mem_range": [
+      4096,
+      69632
+    ],
+    "regfile": []
+  },
+  "progress": {
+    "retire": "commit_valid",
+    "store": "mem_valid"
+  },
+  "gaps": [
+    "scoreboard busy vector width must match the number of architectural registers",
+    "flush address signal is a line index in some builds; adjust obj_fmt"
+  ],
+  "notes": [
+    "Every path is empty on purpose: run `python3 cli.py discover --target ventus --rtl <checkout>` to resolve the probes against your elaborated RTL, then `cli.py doctor`.",
+    "The event rules and state clusters are the semantic part and normally do not change."
+  ]
+}

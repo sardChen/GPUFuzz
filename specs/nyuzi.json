@@ -1,0 +1,52 @@
+{
+  "target": "nyuzi",
+  "full_name": "Nyuzi",
+  "isa": "Custom ISA (Nyuzi)",
+  "arch": "Vector GPU",
+  "hdl": "SystemVerilog",
+  "signals": "adapters/signals/nyuzi.json",
+  "recipe": "adapters/verilator/recipes/nyuzi.json",
+  "isa_profile": "common/isa/nyuzi.json",
+  "caps": {
+    "lanes": 16,
+    "warps_per_block": 16,
+    "warps_total": 64,
+    "warp_slots": 16,
+    "max_blocks": 256,
+    "max_regs": 32,
+    "smem_bytes": 0,
+    "features": [
+      "fp32",
+      "mul",
+      "cache_control",
+      "barrier"
+    ],
+    "inject": [
+      "cache_invalidate",
+      "cache_flush",
+      "mem_backpressure"
+    ],
+    "gmem_bytes": 1048576
+  },
+  "caps_source": "Nyuzi core parameters (vector width 16, 16 hardware threads).",
+  "verify": [
+    "L1 cache line size and MSHR fill path (verilator model)",
+    "invalidate command handling in the L1/L2 cache",
+    "rollback / squash handling in core_pipeline"
+  ],
+  "bugs": {
+    "#21": {
+      "shape": "L1_INVALIDATE_FILL",
+      "component": "L1 Cache",
+      "kind": "interaction",
+      "note": "An L1 invalidation overlapping an outstanding fill lets stale data be re-installed after invalidation."
+    },
+    "#22": {
+      "shape": "ROLLBACK_WB",
+      "component": "Pipeline",
+      "kind": "interaction",
+      "note": "A thread rollback overlapping an instruction writeback fails to suppress the squashed operation."
+    }
+  },
+  "notes": "Parameters are starting points taken from each project's documented defaults. They are data: adjust caps to the configuration you elaborate, then run `python3 cli.py doctor --target nyuzi`."
+}

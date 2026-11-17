@@ -1,0 +1,12 @@
+# Interaction-sensitive regions for Ventus (format: <file>:<start>-<end>)
+# Example file -- regenerate for your checkout with:
+#   python3 scripts/mark_regions.py --rtl ~/gpu/ventus --out specs/regions/ventus.txt
+#
+# The paper's marking step keeps only coverage items whose source location falls
+# inside these ranges: warp scheduling, scoreboard updates, memory request /
+# response handling, cache management and synchronisation logic.
+#
+# dcache/DCache.scala:40-120          # flush, dirty bits, writeback pending
+# dcache/MemReqArb.scala:1-80         # request arbitration / valid-ready
+# scoreboard/Scoreboard.scala:1-80    # busy bits, issue/writeback updates
+# core/VentusCore.scala:1-200         # dispatch, warp scheduling

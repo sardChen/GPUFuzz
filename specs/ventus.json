@@ -1,0 +1,66 @@
+{
+  "target": "ventus",
+  "full_name": "Ventus",
+  "isa": "RISC-V RV32IMAFD + RVV",
+  "arch": "Vector/SIMT",
+  "hdl": "Chisel (SystemVerilog output)",
+  "signals": "adapters/signals/ventus.json",
+  "recipe": "adapters/verilator/recipes/ventus.json",
+  "isa_profile": "common/isa/ventus.json",
+  "caps": {
+    "lanes": 32,
+    "warps_per_block": 32,
+    "warps_total": 32,
+    "warp_slots": 32,
+    "max_blocks": 1024,
+    "max_regs": 32,
+    "smem_bytes": 65536,
+    "features": [
+      "fp32",
+      "mul",
+      "int_div",
+      "sat",
+      "cache_control",
+      "barrier"
+    ],
+    "inject": [
+      "cache_flush",
+      "mem_backpressure",
+      "warp_oversubscribe"
+    ],
+    "gmem_bytes": 1048576
+  },
+  "caps_source": "Ventus Config.scala defaults (SIMT32, 32 warps, 64KB shared memory).",
+  "verify": [
+    "Config.scala: numWarps / simtStackSize / sharedMemSize",
+    "DCache flush control path (flushChoosen) in DCache.scala",
+    "MemReqArb valid/ready handshake to the memory interface"
+  ],
+  "bugs": {
+    "#1": {
+      "shape": "SB_ISSUE_WB",
+      "component": "Scoreboard",
+      "kind": "interaction",
+      "note": "Same-cycle issue and writeback to the same register clear the new writer's busy bit."
+    },
+    "#2": {
+      "shape": "LSU_LANE_ROUTE",
+      "component": "LSU",
+      "kind": "interaction",
+      "note": "Shared-memory lanes are routed through DCache when shared accesses coexist, violating per-lane routing."
+    },
+    "#3": {
+      "shape": "DCACHE_FLUSH_DIRTY",
+      "component": "DCache",
+      "kind": "interaction",
+      "note": "A cache flush clears the dirty bit before writeback acceptance; backpressure discards the request."
+    },
+    "#4": {
+      "shape": "SAT_DECODE",
+      "component": "Decoder",
+      "kind": "functional",
+      "note": "Missing saturating arithmetic entries in the vector decode table: the instruction executes without writing its result."
+    }
+  },
+  "notes": "Parameters are starting points taken from each project's documented defaults. They are data: adjust caps to the configuration you elaborate, then run `python3 cli.py doctor --target ventus`."
+}

@@ -1,0 +1,96 @@
+{
+  "target": "verigpu",
+  "full_name": "VeriGPU",
+  "isa": "RISC-V-like",
+  "arch": "GPU prototype",
+  "hdl": "SystemVerilog",
+  "signals": "adapters/signals/verigpu.json",
+  "recipe": "adapters/verilator/recipes/verigpu.json",
+  "isa_profile": "common/isa/verigpu.json",
+  "caps": {
+    "lanes": 4,
+    "warps_per_block": 4,
+    "warps_total": 4,
+    "warp_slots": 4,
+    "max_blocks": 64,
+    "max_regs": 32,
+    "smem_bytes": 1024,
+    "features": [
+      "fp32",
+      "mul",
+      "int_div",
+      "dma",
+      "barrier"
+    ],
+    "inject": [
+      "mem_backpressure",
+      "dma_copy",
+      "launch_queue"
+    ],
+    "gmem_bytes": 65536
+  },
+  "caps_source": "VeriGPU parameter defaults (lanes per warp, warps per core).",
+  "verify": [
+    "NUM_LANES / NUM_WARPS parameters in the VeriGPU top module",
+    "divider state machine completion path",
+    "controller command FIFO for the zero-length memcpy bug",
+    "JALR target computation in the core"
+  ],
+  "bugs": {
+    "#5": {
+      "shape": "ALU_SIGNED",
+      "component": "Core",
+      "kind": "functional",
+      "note": "Signed branch/comparison instructions use unsigned operations, producing wrong predicates for negative operands."
+    },
+    "#6": {
+      "shape": "DMA_ZERO_LEN",
+      "component": "Controller",
+      "kind": "interaction",
+      "note": "Zero-length memory copies desynchronise the controller and host runtime: later commands are misread."
+    },
+    "#7": {
+      "shape": "DIV_R0",
+      "component": "Divider",
+      "kind": "interaction",
+      "note": "Division targeting register zero skips the writeback completion, leaving the core waiting."
+    },
+    "#8": {
+      "shape": "KERNEL_INIT_REGS",
+      "component": "Register File",
+      "kind": "interaction",
+      "note": "Kernel initialisation clears only register zero; register values persist across launches."
+    },
+    "#9": {
+      "shape": "MEM_ADDR_TRUNC",
+      "component": "Memory",
+      "kind": "functional",
+      "note": "Global memory indexing truncates store addresses, aliasing high addresses onto lower ones."
+    },
+    "#10": {
+      "shape": "JALR_ALIGN",
+      "component": "Core",
+      "kind": "functional",
+      "note": "JALR target calculation fails to clear the least significant bit."
+    },
+    "#11": {
+      "shape": "FP_NAN_INF",
+      "component": "FPU",
+      "kind": "functional",
+      "note": "The floating-point adder lacks NaN and opposing-infinity handling: invalid operations return zero."
+    },
+    "#12": {
+      "shape": "FP_OVERFLOW_PATTERN",
+      "component": "FPU",
+      "kind": "functional",
+      "note": "Incorrect floating-point overflow handling produces a NaN pattern instead of the rounded overflow result."
+    },
+    "#13": {
+      "shape": "FP_ZERO_INF",
+      "component": "FPU",
+      "kind": "functional",
+      "note": "The floating-point multiplier mishandles zero multiplied by infinity, returning zero instead of NaN."
+    }
+  },
+  "notes": "Parameters are starting points taken from each project's documented defaults. They are data: adjust caps to the configuration you elaborate, then run `python3 cli.py doctor --target verigpu`."
+}

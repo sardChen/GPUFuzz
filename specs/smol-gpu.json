@@ -1,0 +1,51 @@
+{
+  "target": "smol-gpu",
+  "full_name": "smol-gpu",
+  "isa": "RV32I-like",
+  "arch": "Multi-warp SIMT",
+  "hdl": "SystemVerilog",
+  "signals": "adapters/signals/smol-gpu.json",
+  "recipe": "adapters/verilator/recipes/smol-gpu.json",
+  "isa_profile": "common/isa/smol-gpu.json",
+  "caps": {
+    "lanes": 8,
+    "warps_per_block": 4,
+    "warps_total": 4,
+    "warp_slots": 4,
+    "max_blocks": 64,
+    "max_regs": 32,
+    "smem_bytes": 0,
+    "features": [
+      "mul",
+      "barrier",
+      "cache_control"
+    ],
+    "inject": [
+      "mem_backpressure",
+      "warp_oversubscribe",
+      "launch_queue"
+    ],
+    "gmem_bytes": 65536
+  },
+  "caps_source": "smol-gpu parameter defaults (threads per warp, warp slots).",
+  "verify": [
+    "warp slot table size in the scheduler",
+    "dispatcher block counter capture point",
+    "kernel launch register interface"
+  ],
+  "bugs": {
+    "#14": {
+      "shape": "DISPATCH_BLOCKS",
+      "component": "Dispatcher",
+      "kind": "interaction",
+      "note": "The dispatcher captures the block count before the runtime configuration arrives, so execution finishes without dispatching blocks."
+    },
+    "#15": {
+      "shape": "WARP_SLOT_ALLOC",
+      "component": "Warp Scheduler",
+      "kind": "interaction",
+      "note": "Warp allocation exceeds the available slots; the scheduler reuses an occupied slot and corrupts warp state."
+    }
+  },
+  "notes": "Parameters are starting points taken from each project's documented defaults. They are data: adjust caps to the configuration you elaborate, then run `python3 cli.py doctor --target smol-gpu`."
+}

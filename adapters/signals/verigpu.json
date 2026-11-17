@@ -1,0 +1,212 @@
+{
+  "schema": "gpufuzz.signals/1",
+  "target": "verigpu",
+  "top": "VeriGPU",
+  "scope": "TOP.VeriGPU",
+  "confidence": "unresolved",
+  "signals": [
+    {
+      "id": "if_fire",
+      "path": "",
+      "probe": "issue|if_valid|instr_valid",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "if_wvd",
+      "path": "",
+      "probe": "wvd|write_reg|reg_write",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "if_reg",
+      "path": "",
+      "probe": "dest_reg|waddr",
+      "width": 8,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "wb_valid",
+      "path": "",
+      "probe": "wb_valid|writeback",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "wb_ready",
+      "path": "",
+      "probe": "wb_ready|always1",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "wb_reg",
+      "path": "",
+      "probe": "wb_reg|dest_reg",
+      "width": 8,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "mem_valid",
+      "path": "",
+      "probe": "mem_valid|req_valid",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "mem_ready",
+      "path": "",
+      "probe": "mem_ready|req_ready",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "commit_valid",
+      "path": "",
+      "probe": "commit|retire",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    },
+    {
+      "id": "done",
+      "path": "",
+      "probe": "done|halt|kernel_end",
+      "width": 1,
+      "kind": "signal",
+      "confidence": "unresolved"
+    }
+  ],
+  "states": [
+    {
+      "sid": "rf.write",
+      "path": "",
+      "probe": "reg_write|rf_we",
+      "obj_fmt": "reg:%d",
+      "width": 1,
+      "confidence": "unresolved",
+      "obj_from": "wb_reg"
+    },
+    {
+      "sid": "div.state",
+      "path": "",
+      "probe": "div_state|div_busy",
+      "obj_fmt": "reg:%d",
+      "width": 4,
+      "confidence": "unresolved",
+      "obj_from": "if_reg"
+    },
+    {
+      "sid": "txn.state",
+      "path": "",
+      "probe": "cmd_state|ctrl_state",
+      "obj_fmt": "unit:dma",
+      "width": 4,
+      "confidence": "unresolved"
+    },
+    {
+      "sid": "dispatch.count",
+      "path": "",
+      "probe": "block_count|dispatch_count",
+      "obj_fmt": "kernel:0",
+      "width": 32,
+      "confidence": "unresolved"
+    }
+  ],
+  "events": [
+    {
+      "id": "issue",
+      "type": "issue",
+      "when": "if_fire & if_wvd",
+      "outcome": "ok",
+      "obj": {
+        "kind": "reg",
+        "from": "if_reg",
+        "fmt": "reg:%d"
+      }
+    },
+    {
+      "id": "wb",
+      "type": "wb",
+      "when": "wb_valid",
+      "outcome": "ok",
+      "obj": {
+        "kind": "reg",
+        "from": "wb_reg",
+        "fmt": "reg:%d"
+      }
+    },
+    {
+      "id": "div_start",
+      "type": "div_start",
+      "when": "div_valid",
+      "outcome": "ok",
+      "obj": {
+        "kind": "reg",
+        "from": "if_reg",
+        "fmt": "reg:%d"
+      }
+    },
+    {
+      "id": "div_done",
+      "type": "div_done",
+      "when": "div_done",
+      "outcome": "ok",
+      "obj": {
+        "kind": "reg",
+        "from": "if_reg",
+        "fmt": "reg:%d"
+      }
+    },
+    {
+      "id": "dma_copy",
+      "type": "dma_copy",
+      "when": "dma_valid",
+      "outcome": "ok"
+    }
+  ],
+  "inject": {
+    "mem_backpressure": {
+      "method": "drive",
+      "pins": [
+        "mem_ready"
+      ],
+      "value": 0,
+      "note": "drive the memory interface's ready/valid-low for the window"
+    },
+    "dma_copy": {
+      "method": "drive",
+      "pins": [
+        "dma_valid"
+      ],
+      "value": 1
+    }
+  },
+  "arch": {
+    "mem_range": [
+      4096,
+      69632
+    ],
+    "regfile": []
+  },
+  "progress": {
+    "retire": "commit_valid",
+    "store": "mem_valid"
+  },
+  "gaps": [
+    "zero-length copy ordering is observed through txn.state + dma_copy events"
+  ],
+  "notes": [
+    "Every path is empty on purpose: run `python3 cli.py discover --target verigpu --rtl <checkout>` to resolve the probes against your elaborated RTL, then `cli.py doctor`.",
+    "The event rules and state clusters are the semantic part and normally do not change."
+  ]
+}

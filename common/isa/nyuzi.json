@@ -1,0 +1,22 @@
+{
+  "target": "nyuzi",
+  "dialect": "opaque",
+  "entry": "gpufuzz_entry",
+  "toolchain": {
+    "cc": "nyuzi-elf-gcc",
+    "objcopy": "nyuzi-elf-objcopy",
+    "flags": [
+      "-nostdlib"
+    ],
+    "objcopy_flags": [
+      "-O",
+      "binary"
+    ]
+  },
+  "macros": {},
+  "startup": {
+    "stack_bytes": 4096,
+    "stack": "__stack_top"
+  },
+  "notes": "Nyuzi has its own compiler/assembler and vector ISA.  The emitted text is RV32-shaped; port the macro set to Nyuzi mnemonics (or add a dialect backend) before use."
+}

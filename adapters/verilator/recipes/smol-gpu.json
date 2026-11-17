@@ -1,0 +1,60 @@
+{
+  "schema": "gpufuzz.recipe/1",
+  "target": "smol-gpu",
+  "top": "top",
+  "status": "template",
+  "sources": [
+    "rtl/**/*.sv",
+    "src/**/*.sv"
+  ],
+  "include_dirs": [],
+  "verilator_flags": [
+    "-O2",
+    "--x-assign",
+    "fast",
+    "--x-initial",
+    "0"
+  ],
+  "clock": {
+    "path": "clock",
+    "port": "clock",
+    "period": 10
+  },
+  "reset": {
+    "path": "reset",
+    "port": "reset",
+    "polarity": "high",
+    "cycles": 20
+  },
+  "done": "",
+  "progress": {
+    "retire": "commit_valid",
+    "store": "mem_valid"
+  },
+  "memory": {
+    "kind": "simple",
+    "base": 4096,
+    "size": 1048576,
+    "pins": {
+      "req_valid": "",
+      "req_ready": "",
+      "req_we": "",
+      "req_addr": "",
+      "req_wdata": "",
+      "rsp_valid": "",
+      "rsp_rdata": ""
+    },
+    "data_width": 32,
+    "addr_width": 32
+  },
+  "build": {
+    "tool": "verilator",
+    "jobs": 4
+  },
+  "notes": "smol-gpu loads its kernel through a simple memory port. Source globs are patterns: build.py expands them against --rtl.",
+  "todo": [
+    "confirm the top module name after elaboration",
+    "fill the memory pin names (see discover.py --pins)",
+    "provide the done/retire signals used for anchoring"
+  ]
+}

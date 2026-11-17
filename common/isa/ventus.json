@@ -1,0 +1,515 @@
+{
+  "target": "ventus",
+  "dialect": "riscv",
+  "entry": "gpufuzz_entry",
+  "toolchain": {
+    "cc": "riscv64-unknown-elf-gcc",
+    "objcopy": "riscv64-unknown-elf-objcopy",
+    "flags": [
+      "-march=rv32imafdcv",
+      "-mabi=ilp32d",
+      "-nostdlib",
+      "-nostartfiles",
+      "-Ttext=0x0"
+    ],
+    "objcopy_flags": [
+      "-O",
+      "binary"
+    ]
+  },
+  "macros": {
+    "GPU_GET_TID": {
+      "body": [
+        "csrr \\rd, 2048"
+      ],
+      "conf": "placeholder",
+      "note": "thread id CSR; replace with the design's thread-id source",
+      "nargs": 1,
+      "args": [
+        "rd"
+      ]
+    },
+    "GPU_GET_LANEID": {
+      "body": [
+        "csrr \\rd, 2048",
+        "andi \\rd, \\rd, 31"
+      ],
+      "conf": "placeholder",
+      "note": "lane id derived from the thread id; adjust the mask to the warp width",
+      "nargs": 1,
+      "args": [
+        "rd"
+      ]
+    },
+    "GPU_GET_WARPID": {
+      "body": [
+        "csrr \\rd, 2048",
+        "srli \\rd, \\rd, 5"
+      ],
+      "conf": "placeholder",
+      "note": "warp id derived from the thread id",
+      "nargs": 1,
+      "args": [
+        "rd"
+      ]
+    },
+    "GPU_GET_CTAID": {
+      "body": [
+        "csrr \\rd, 2049"
+      ],
+      "conf": "placeholder",
+      "note": "block id CSR",
+      "nargs": 1,
+      "args": [
+        "rd"
+      ]
+    },
+    "GPU_GET_NTID": {
+      "body": [
+        "li \\rd, 0"
+      ],
+      "conf": "placeholder",
+      "note": "threads per block; patched by the driver",
+      "nargs": 1,
+      "args": [
+        "rd"
+      ]
+    },
+    "GPU_GET_NCTAID": {
+      "body": [
+        "li \\rd, 0"
+      ],
+      "conf": "placeholder",
+      "note": "grid size; patched by the driver",
+      "nargs": 1,
+      "args": [
+        "rd"
+      ]
+    },
+    "GPU_GET_CLOCK": {
+      "body": [
+        "csrr \\rd, 0xC00"
+      ],
+      "conf": "placeholder",
+      "note": "cycle counter",
+      "nargs": 1,
+      "args": [
+        "rd"
+      ]
+    },
+    "GPU_BARRIER": {
+      "body": [
+        "li x5, \\imm",
+        "csrw 2049, x5"
+      ],
+      "conf": "placeholder",
+      "note": "thread-block barrier; the id in \\imm selects the barrier",
+      "nargs": 1,
+      "args": [
+        "imm"
+      ]
+    },
+    "GPU_EXIT": {
+      "body": [
+        "li x5, 1",
+        "csrw 0x802, x5",
+        "1: j 1b"
+      ],
+      "conf": "placeholder",
+      "note": "warp/kernel exit; replace with the design's done signal",
+      "nargs": 0,
+      "args": []
+    },
+    "GPU_FENCE": {
+      "body": [
+        "fence"
+      ],
+      "conf": "high",
+      "note": "",
+      "nargs": 1,
+      "args": [
+        "rd"
+      ]
+    },
+    "GPU_MIN": {
+      "body": [
+        "bge \\rs1, \\rs2, 1f",
+        "mv \\rd, \\rs1",
+        "j 2f",
+        "1:",
+        "mv \\rd, \\rs2",
+        "2:"
+      ],
+      "conf": "high",
+      "note": "",
+      "nargs": 2,
+      "args": [
+        "rd",
+        "rs1",
+        "rs2"
+      ]
+    },
+    "GPU_MAX": {
+      "body": [
+        "bge \\rs1, \\rs2, 1f",
+        "mv \\rd, \\rs2",
+        "j 2f",
+        "1:",
+        "mv \\rd, \\rs1",
+        "2:"
+      ],
+      "conf": "high",
+      "note": "",
+      "nargs": 2,
+      "args": [
+        "rd",
+        "rs1",
+        "rs2"
+      ]
+    },
+    "GPU_ABS": {
+      "body": [
+        "srai x5, \\rs1, 31",
+        "xor \\rd, \\rs1, x5",
+        "sub \\rd, \\rd, x5"
+      ],
+      "conf": "high",
+      "note": "",
+      "nargs": 1,
+      "args": [
+        "rd",
+        "rs1"
+      ]
+    },
+    "GPU_NEG": {
+      "body": [
+        "sub \\rd, x0, \\rs1"
+      ],
+      "conf": "high",
+      "note": "",
+      "nargs": 1,
+      "args": [
+        "rd",
+        "rs1"
+      ]
+    },
+    "GPU_SAT_ADD": {
+      "body": [
+        "add \\rd, \\rs1, \\rs2",
+        "xor x5, \\rs1, \\rd",
+        "xor x6, \\rs2, \\rd",
+        "and x5, x5, x6",
+        "bge x5, x0, 1f",
+        "blt \\rs1, x0, 2f",
+        "li \\rd, 0x7fffffff",
+        "j 1f",
+        "2:",
+        "li \\rd, 0x80000000",
+        "1:"
+      ],
+      "conf": "high",
+      "note": "",
+      "nargs": 2,
+      "args": [
+        "rd",
+        "rs1",
+        "rs2"
+      ]
+    },
+    "GPU_SAT_SUB": {
+      "body": [
+        "sub \\rd, \\rs1, \\rs2",
+        "xor x5, \\rs1, \\rd",
+        "xor x6, \\rs2, \\rd",
+        "andn x5, x5, x6",
+        "bge x5, x0, 1f",
+        "blt \\rs1, x0, 2f",
+        "li \\rd, 0x7fffffff",
+        "j 1f",
+        "2:",
+        "li \\rd, 0x80000000",
+        "1:"
+      ],
+      "conf": "medium",
+      "note": "uses the Zbb andn instruction; replace with not/and if Zbb is unavailable",
+      "nargs": 2,
+      "args": [
+        "rd",
+        "rs1",
+        "rs2"
+      ]
+    },
+    "GPU_FADD": {
+      "body": [
+        "fmv.w.x ft0, \\rs1",
+        "fmv.w.x ft1, \\rs2",
+        "fadd.s ft0, ft0, ft1",
+        "fmv.x.w \\rd, ft0"
+      ],
+      "conf": "medium",
+      "note": "scalar float path: ft0/ft1 are assembler temporaries",
+      "nargs": 2,
+      "args": [
+        "rd",
+        "rs1",
+        "rs2"
+      ]
+    },
+    "GPU_FSUB": {
+      "body": [
+        "fmv.w.x ft0, \\rs1",
+        "fmv.w.x ft1, \\rs2",
+        "fsub.s ft0, ft0, ft1",
+        "fmv.x.w \\rd, ft0"
+      ],
+      "conf": "medium",
+      "note": "scalar float path: ft0/ft1 are assembler temporaries",
+      "nargs": 2,
+      "args": [
+        "rd",
+        "rs1",
+        "rs2"
+      ]
+    },
+    "GPU_FMUL": {
+      "body": [
+        "fmv.w.x ft0, \\rs1",
+        "fmv.w.x ft1, \\rs2",
+        "fmul.s ft0, ft0, ft1",
+        "fmv.x.w \\rd, ft0"
+      ],
+      "conf": "medium",
+      "note": "scalar float path: ft0/ft1 are assembler temporaries",
+      "nargs": 2,
+      "args": [
+        "rd",
+        "rs1",
+        "rs2"
+      ]
+    },
+    "GPU_FDIV": {
+      "body": [
+        "fmv.w.x ft0, \\rs1",
+        "fmv.w.x ft1, \\rs2",
+        "fdiv.s ft0, ft0, ft1",
+        "fmv.x.w \\rd, ft0"
+      ],
+      "conf": "medium",
+      "note": "scalar float path: ft0/ft1 are assembler temporaries",
+      "nargs": 2,
+      "args": [
+        "rd",
+        "rs1",
+        "rs2"
+      ]
+    },
+    "GPU_F2I": {
+      "body": [
+        "fmv.w.x ft0, \\rs1",
+        "fcvt.w.s \\rd, ft0, rtz"
+      ],
+      "conf": "medium",
+      "note": "",
+      "nargs": 1,
+      "args": [
+        "rd",
+        "rs1"
+      ]
+    },
+    "GPU_I2F": {
+      "body": [
+        "fcvt.s.w ft0, \\rs1",
+        "fmv.x.w \\rd, ft0"
+      ],
+      "conf": "medium",
+      "note": "",
+      "nargs": 1,
+      "args": [
+        "rd",
+        "rs1"
+      ]
+    },
+    "GPU_FNEG": {
+      "body": [
+        "li x5, 0x80000000",
+        "xor \\rd, \\rs1, x5"
+      ],
+      "conf": "high",
+      "note": "",
+      "nargs": 1,
+      "args": [
+        "rd",
+        "rs1"
+      ]
+    },
+    "GPU_FABS": {
+      "body": [
+        "li x5, 0x7fffffff",
+        "and \\rd, \\rs1, x5"
+      ],
+      "conf": "high",
+      "note": "",
+      "nargs": 1,
+      "args": [
+        "rd",
+        "rs1"
+      ]
+    },
+    "GPU_FCVT_RTZ": {
+      "body": [
+        "slli x5, \\rs1, 1",
+        "li x6, 0xff000000",
+        "bne x5, x6, 1f",
+        "li x6, 0x7f7fffff",
+        "srli x5, \\rs1, 31",
+        "slli x5, x5, 31",
+        "or \\rd, x6, x5",
+        "j 2f",
+        "1:",
+        "mv \\rd, \\rs1",
+        "2:"
+      ],
+      "conf": "medium",
+      "note": "directed rounding: saturate +/-inf to the largest finite value",
+      "nargs": 1,
+      "args": [
+        "rd",
+        "rs1"
+      ]
+    },
+    "GPU_FCVT_RDN": {
+      "body": [
+        "slli x5, \\rs1, 1",
+        "li x6, 0xff000000",
+        "bne x5, x6, 1f",
+        "li x6, 0x7f7fffff",
+        "srli x5, \\rs1, 31",
+        "slli x5, x5, 31",
+        "or \\rd, x6, x5",
+        "j 2f",
+        "1:",
+        "mv \\rd, \\rs1",
+        "2:"
+      ],
+      "conf": "medium",
+      "note": "directed rounding: saturate +/-inf to the largest finite value",
+      "nargs": 1,
+      "args": [
+        "rd",
+        "rs1"
+      ]
+    },
+    "GPU_FCVT_RNE": {
+      "body": [
+        "mv \\rd, \\rs1"
+      ],
+      "conf": "medium",
+      "note": "round-to-nearest/up keeps infinity on overflow",
+      "nargs": 1,
+      "args": [
+        "rd",
+        "rs1"
+      ]
+    },
+    "GPU_FCVT_RUP": {
+      "body": [
+        "mv \\rd, \\rs1"
+      ],
+      "conf": "medium",
+      "note": "round-to-nearest/up keeps infinity on overflow",
+      "nargs": 1,
+      "args": [
+        "rd",
+        "rs1"
+      ]
+    },
+    "GPU_LDS": {
+      "body": [
+        "lw \\rd, 0(\\rs1)"
+      ],
+      "conf": "placeholder",
+      "note": "shared-memory load: replace with the design's shared-memory address space",
+      "nargs": 1,
+      "args": [
+        "rd"
+      ]
+    },
+    "GPU_STS": {
+      "body": [
+        "sw \\rs2, 0(\\rs1)"
+      ],
+      "conf": "placeholder",
+      "note": "shared-memory store",
+      "nargs": 2,
+      "args": [
+        "rs2",
+        "rs1"
+      ]
+    },
+    "GPU_TEX": {
+      "body": [
+        "# texture sample: supply the target instruction",
+        "li \\rd, 0"
+      ],
+      "conf": "placeholder",
+      "note": "map to the texture sample instruction",
+      "nargs": 1,
+      "args": [
+        "rd",
+        "rs1"
+      ]
+    },
+    "GPU_CACHE_OP": {
+      "body": [
+        "# flush/invalidate control: supply the target instruction",
+        "li x5, \\imm",
+        "csrw 2066, x5"
+      ],
+      "conf": "placeholder",
+      "note": "cache control op",
+      "nargs": 1,
+      "args": [
+        "imm"
+      ]
+    },
+    "GPU_GETCFG": {
+      "body": [
+        "# read a configuration register",
+        "li \\rd, 0"
+      ],
+      "conf": "placeholder",
+      "note": "queue/config register read",
+      "nargs": 1,
+      "args": [
+        "rd"
+      ]
+    },
+    "GPU_SETCFG": {
+      "body": [
+        "# write a configuration register"
+      ],
+      "conf": "placeholder",
+      "note": "queue/config register write",
+      "nargs": 1,
+      "args": [
+        "rs1"
+      ]
+    },
+    "GPU_DMA": {
+      "body": [
+        "# copy-engine command"
+      ],
+      "conf": "placeholder",
+      "note": "copy engine command",
+      "nargs": 1,
+      "args": [
+        "rs1"
+      ]
+    }
+  },
+  "startup": {
+    "stack_bytes": 4096,
+    "stack": "__stack_top"
+  },
+  "notes": "Ventus executes RV32 + RVV kernels; saturating arithmetic can be lowered to vsadd.vv once the vector setup is provided."
+}
